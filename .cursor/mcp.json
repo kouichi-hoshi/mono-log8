@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "mcp-miro": {
+      "command": "bash",
+      "args": [
+        "-lc",
+        "source /Users/kouichi/project/my_project/mono-log/mono-log8/.env.miro && node /Users/kouichi/mcp-servers/mcp-miro/build/index.js"
+      ]
+    }
+  }
+}
