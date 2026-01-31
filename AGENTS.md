@@ -74,3 +74,16 @@
 
 - 詳細な TDD 手順やテスト品質チェックは `.codex/skills/*` を参照
 - このファイルにない詳細仕様は、必要な docs の該当箇所を読むこと
+
+---
+
+## サブエージェント運用（導線）
+
+実装時は、まず `director` を起点に進める（仕様/設計/計画の前提確認→不足情報があれば停止）。
+
+- 運用イメージ: director → tester（テスト観点/ケース補完）→ programmer（TDDで実装）→ director（要件適合の確認）
+- サブエージェント定義（Codex互換）: `.codex/agents/`
+- 実装計画（マイルストーン/DoD）: `.cursor/plans/implementation-plan-from-workplan_266d5333.plan.md`
+- 作業計画書（項番の進捗管理）: `docs/04.作業計画書.md`
+
+（注意）DB/マイグレーション/.env 等の禁止事項は本ファイル上部のルールに従う。
