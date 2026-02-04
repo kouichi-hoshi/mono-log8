@@ -1,11 +1,16 @@
-export type AppSession = {
-  user: {
-    id: string;
-    name?: string | null;
-    email?: string | null;
-    image?: string | null;
-  };
-};
+import "server-only";
+
+import { cookies } from "next/headers";
+
+import type { AppSession } from "./types";
+export type { AppSession } from "./types";
+import { isStubAuthEnabled } from "./stubAuthGuard";
+import {
+  STUB_COOKIE_NAME,
+  buildClearStubCookie,
+  buildStubCookie,
+  readStubSession,
+} from "./stubSession";
 
 export interface AuthAdapter {
   getSession(): Promise<AppSession | null>;
@@ -15,13 +20,38 @@ export interface AuthAdapter {
 
 export const authAdapter: AuthAdapter = {
   async getSession() {
-    throw new Error("authAdapter.getSession is not implemented");
+    const enabled = isStubAuthEnabled(
+      process.env.NODE_ENV,
+      process.env.USE_STUB_AUTH
+    );
+    if (!enabled) return null;
+    const cookieValue = cookies().get(STUB_COOKIE_NAME)?.value;
+    return readStubSession(cookieValue);
   },
   async signIn() {
-    throw new Error("authAdapter.signIn is not implemented");
+    const enabled = isStubAuthEnabled(
+      process.env.NODE_ENV,
+      process.env.USE_STUB_AUTH
+    );
+    if (!enabled) {
+      const error = new Error("Stub auth is disabled");
+      (error as { status?: number }).status = 403;
+      throw error;
+    }
+    const definition = buildStubCookie(process.env.NODE_ENV);
+    cookies().set(definition.name, definition.value, definition.options);
   },
   async signOut() {
-    throw new Error("authAdapter.signOut is not implemented");
+    const enabled = isStubAuthEnabled(
+      process.env.NODE_ENV,
+      process.env.USE_STUB_AUTH
+    );
+    if (!enabled) {
+      const error = new Error("Stub auth is disabled");
+      (error as { status?: number }).status = 403;
+      throw error;
+    }
+    const definition = buildClearStubCookie(process.env.NODE_ENV);
+    cookies().set(definition.name, definition.value, definition.options);
   },
 };
-

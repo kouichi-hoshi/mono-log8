@@ -11,6 +11,14 @@ export const texts = {
     disclaimerTitle: "免責事項",
     disclaimerBody:
       "このアプリは予告なく変更・削除される場合があります。アプリのご利用に際しては、すべて利用者の責任においてご利用ください。",
+    linksTitle: "Link",
+    contact: "お問い合わせ",
+  },
+  auth: {
+    login: "ログイン",
+    loginWithGoogle: "Googleでログイン",
+    loginDescription: "Googleアカウントでログインします。",
+    logout: "ログアウト",
   },
   toast: {
     success: {
@@ -28,7 +36,7 @@ export const texts = {
       tooManyTags: "タグは最大10件まで追加できます",
       tagTooLong: "タグ名は最大32文字までです",
       loginRequired: "ログインが必要です",
-      authError: "認証エラーが発生しました",
+      authError: "ログインに失敗しました、サイト管理者にお問い合わせください",
       forbidden: "権限がありません",
       notFound: "対象が見つかりません",
       invalid: "入力内容に不備があります",
@@ -61,4 +69,3 @@ export const texts = {
     hardDelete: "完全に削除",
   },
 } as const;
-
