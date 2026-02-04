@@ -1,0 +1,64 @@
+export const texts = {
+  app: {
+    name: "Mono Log",
+    key: "mono-log",
+  },
+  welcome: {
+    headline: "メモとノートをまとめて管理しましょう",
+    aboutTitle: "このアプリについて",
+    aboutBody:
+      "アプリ開発の学習のために制作した、シンプルなメモ/ノートアプリです。どなたでも無料でお試しいただけます。機密情報等は入力しないようお願いします。",
+    disclaimerTitle: "免責事項",
+    disclaimerBody:
+      "このアプリは予告なく変更・削除される場合があります。アプリのご利用に際しては、すべて利用者の責任においてご利用ください。",
+  },
+  toast: {
+    success: {
+      saved: "保存しました",
+      updated: "更新しました",
+      trashed: "投稿を削除しました",
+      restored: "投稿を復元しました",
+      hardDeleted: "投稿を完全に削除しました",
+      fetchedAll: "すべての投稿を取得しました",
+    },
+    error: {
+      requiredContent: "内容を入力してください",
+      memoTooLong: "内容は最大280文字までです",
+      noteTooLong: "内容は最大20000文字までです",
+      tooManyTags: "タグは最大10件まで追加できます",
+      tagTooLong: "タグ名は最大32文字までです",
+      loginRequired: "ログインが必要です",
+      authError: "認証エラーが発生しました",
+      forbidden: "権限がありません",
+      notFound: "対象が見つかりません",
+      invalid: "入力内容に不備があります",
+      serverError: "サーバーエラーが発生しました",
+      unknownError: "エラーが発生しました",
+    },
+    action: {
+      retry: "再試行",
+    },
+  },
+  modal: {
+    close: "X",
+    deleteConfirm: {
+      titleForCount: (count: number) => `${count}件の投稿を完全に削除しますか?`,
+      titleDeleteAllTrashed: "ごみ箱内のすべての投稿を完全に削除しますか?",
+      warning: "この操作は取り消せません",
+      cancel: "キャンセル",
+      delete: "削除",
+    },
+  },
+  trash: {
+    open: "ごみ箱を見る",
+    selectVisible: "表示されている投稿を選択",
+    selectedCount: (count: number) => `${count}件選択中`,
+    deleteSelected: "選択した投稿を削除",
+    empty: "ごみ箱を空にする",
+  },
+  post: {
+    delete: "削除",
+    hardDelete: "完全に削除",
+  },
+} as const;
+
