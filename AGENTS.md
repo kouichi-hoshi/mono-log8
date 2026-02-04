@@ -83,7 +83,7 @@
 
 - 運用イメージ: director → tester（テスト観点/ケース補完）→ programmer（TDDで実装）→ director（要件適合の確認）
 - サブエージェント定義（Codex互換）: `.codex/agents/`
-- 実装計画（マイルストーン/DoD）: `.cursor/plans/implementation-plan-from-workplan_266d5333.plan.md`
+- 実装計画（マイルストーン/DoD）: `docs/06.実装プラン.md`
 - 作業計画書（項番の進捗管理）: `docs/04.作業計画書.md`
 
 （注意）DB/マイグレーション/.env 等の禁止事項は本ファイル上部のルールに従う。
