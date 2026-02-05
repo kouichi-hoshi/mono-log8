@@ -11,14 +11,14 @@ describe("validatePostInput", () => {
       validatePostInput({
         mode: "memo",
         contentText: "   ",
-        tags: [],
+        tagsCount: 0,
       })
     ).toThrow();
   });
 
   test("returns 422 for empty content", () => {
     try {
-      validatePostInput({ mode: "memo", contentText: "", tags: [] });
+      validatePostInput({ mode: "memo", contentText: "", tagsCount: 0 });
       throw new Error("expected to throw");
     } catch (error) {
       expect(getStatus(error)).toBe(422);
@@ -28,7 +28,7 @@ describe("validatePostInput", () => {
   test("memo length limit 280", () => {
     const tooLong = "a".repeat(281);
     try {
-      validatePostInput({ mode: "memo", contentText: tooLong, tags: [] });
+      validatePostInput({ mode: "memo", contentText: tooLong, tagsCount: 0 });
       throw new Error("expected to throw");
     } catch (error) {
       expect(getStatus(error)).toBe(422);
@@ -38,7 +38,7 @@ describe("validatePostInput", () => {
   test("note length limit 20000", () => {
     const tooLong = "a".repeat(20001);
     try {
-      validatePostInput({ mode: "note", contentText: tooLong, tags: [] });
+      validatePostInput({ mode: "note", contentText: tooLong, tagsCount: 0 });
       throw new Error("expected to throw");
     } catch (error) {
       expect(getStatus(error)).toBe(422);
@@ -46,9 +46,9 @@ describe("validatePostInput", () => {
   });
 
   test("tag limit after normalization", () => {
-    const tags = Array.from({ length: 11 }, (_, i) => `tag${i}`);
+    const tagsCount = 11;
     try {
-      validatePostInput({ mode: "memo", contentText: "ok", tags });
+      validatePostInput({ mode: "memo", contentText: "ok", tagsCount });
       throw new Error("expected to throw");
     } catch (error) {
       expect(getStatus(error)).toBe(422);

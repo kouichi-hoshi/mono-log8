@@ -32,7 +32,8 @@ const toActionError = (error: unknown): ActionError => {
 export const createPostAction = async (params: Parameters<typeof postRepository.create>[0]) => {
   try {
     const result = await postRepository.create(params);
-    return { ok: true, data: result } satisfies ActionResult<typeof result>;
+    const detail = await postRepository.findById({ postId: result.postId });
+    return { ok: true, data: detail } satisfies ActionResult<typeof detail>;
   } catch (error) {
     return toActionError(error);
   }
@@ -63,7 +64,28 @@ export const findPostAction = async (
 export const updatePostAction = async (params: Parameters<typeof postRepository.update>[0]) => {
   try {
     await postRepository.update(params);
-    return { ok: true, data: null } satisfies ActionResult<null>;
+    const detail = await postRepository.findById({ postId: params.postId });
+    return { ok: true, data: detail } satisfies ActionResult<typeof detail>;
+  } catch (error) {
+    return toActionError(error);
+  }
+};
+
+export const setFavoriteAction = async (
+  params: Parameters<typeof postRepository.setFavorite>[0]
+) => {
+  try {
+    const result = await postRepository.setFavorite(params);
+    return { ok: true, data: result } satisfies ActionResult<typeof result>;
+  } catch (error) {
+    return toActionError(error);
+  }
+};
+
+export const findTagCloudAction = async () => {
+  try {
+    const result = await postRepository.findTagCloud();
+    return { ok: true, data: result } satisfies ActionResult<typeof result>;
   } catch (error) {
     return toActionError(error);
   }

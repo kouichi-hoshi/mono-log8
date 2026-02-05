@@ -3,7 +3,7 @@ import type { PostMode, PostTagId } from "@/lib/posts/types";
 export type ValidationContext = {
   mode: PostMode;
   contentText: string;
-  tags: PostTagId[];
+  tagsCount: number;
 };
 
 const createError = (status: number, message: string, code: string) => {
@@ -25,7 +25,7 @@ export const normalizeTagIds = (tags: PostTagId[]): PostTagId[] => {
 export const validatePostInput = ({
   mode,
   contentText,
-  tags,
+  tagsCount,
 }: ValidationContext): void => {
   const trimmed = contentText.trim();
   if (trimmed.length === 0) {
@@ -40,8 +40,7 @@ export const validatePostInput = ({
     throw createError(422, "Note content exceeds limit", "validation/content/note");
   }
 
-  const normalizedTags = normalizeTagIds(tags);
-  if (normalizedTags.length > 10) {
+  if (tagsCount > 10) {
     throw createError(422, "Too many tags", "validation/tags/max");
   }
 };

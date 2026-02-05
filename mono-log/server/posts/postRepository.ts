@@ -10,12 +10,14 @@ import type {
   PostStatus,
   PostSummary,
   PostTagId,
+  TagSummary,
 } from "@/lib/posts/types";
 
 import { deriveContentText, normalizeContentForMode } from "./contentText";
 import { isStubPostsEnabled } from "./stubPostsGuard";
 import { createStubPostsStore } from "./stubPostsStore";
-import type { StubPostRecord } from "./stubPostsStore";
+import type { StubPostRecord, StubTagRecord } from "./stubPostsStore";
+import { buildTagCloud, resolveTagLabels, resolveTagSummaries } from "./tagResolver";
 import { normalizeTagIds, validatePostInput } from "./validation";
 
 export type PostCursor = string;
@@ -37,22 +39,24 @@ export type FindManyPostsResult = {
 export type CreatePostParams = {
   mode: PostMode;
   content: PostContent;
-  tags: PostTagId[];
+  tags: string[];
   favorite?: boolean;
 };
 
 export type UpdatePostParams = {
   postId: string;
   content: PostContent;
-  tags: PostTagId[];
+  tags: string[];
   favorite?: boolean;
 };
 
 export interface PostRepository {
   findMany(params: FindManyPostsParams): Promise<FindManyPostsResult>;
   findById(params: { postId: string }): Promise<PostDetail>;
+  findTagCloud(): Promise<TagSummary[]>;
   create(params: CreatePostParams): Promise<{ postId: string }>;
   update(params: UpdatePostParams): Promise<void>;
+  setFavorite(params: { postId: string; favorite: boolean }): Promise<PostSummary>;
   trash(params: { postId: string }): Promise<void>;
   restore(params: { postId: string }): Promise<void>;
   hardDelete(params: { postId: string }): Promise<void>;
@@ -116,6 +120,8 @@ export const createPostRepository = ({
     return session;
   };
 
+  const generateTagId = generateId ?? (() => randomUUID());
+
   return {
     async findMany({ status, mode, tags, favorite, limit, cursor }) {
       const session = await ensureContext();
@@ -145,7 +151,7 @@ export const createPostRepository = ({
           postId: post.postId,
           mode: post.mode,
           createdAt: post.createdAt,
-          tags: post.tags,
+          tags: resolveTagSummaries(data, post.tags),
           favorite: post.favorite,
           contentText: post.contentText,
         })),
@@ -166,7 +172,7 @@ export const createPostRepository = ({
         postId: post.postId,
         mode: post.mode,
         createdAt: post.createdAt,
-        tags: post.tags,
+        tags: resolveTagSummaries(data, post.tags),
         favorite: post.favorite,
         contentText: post.contentText,
         content: post.content,
@@ -176,22 +182,43 @@ export const createPostRepository = ({
       };
     },
 
+    async findTagCloud() {
+      const session = await ensureContext();
+      const data = await store.read();
+      return buildTagCloud(data, session.user.id);
+    },
+
     async create({ mode, content, tags, favorite }) {
       const session = await ensureContext();
       const postId = generateId ? generateId() : randomUUID();
       const normalizedContent = normalizeContentForMode(mode, content);
       const contentText = deriveContentText(mode, normalizedContent);
-      const normalizedTags = normalizeTagIds(tags);
-      validatePostInput({ mode, contentText, tags: normalizedTags });
 
       await store.write((data) => {
+        let resolvedTags: { tagIds: PostTagId[]; tags: StubTagRecord[] };
+        try {
+          resolvedTags = resolveTagLabels({
+            data,
+            ownerId: session.user.id,
+            labels: tags,
+            now,
+            generateId: generateTagId,
+          });
+        } catch (error) {
+          const code = (error as { code?: string }).code;
+          if (code) {
+            throw createError(422, "Invalid tag label", code);
+          }
+          throw error;
+        }
+        validatePostInput({ mode, contentText, tagsCount: resolvedTags.tagIds.length });
         const timestamp = now();
         const record: StubPostRecord = {
           postId,
           authorId: session.user.id,
           mode,
           status: "active",
-          tags: normalizedTags,
+          tags: resolvedTags.tagIds,
           favorite: Boolean(favorite),
           content: normalizedContent,
           contentText,
@@ -199,7 +226,7 @@ export const createPostRepository = ({
           updatedAt: timestamp,
           trashedAt: null,
         };
-        return { ...data, posts: [record, ...data.posts] };
+        return { ...data, posts: [record, ...data.posts], tags: resolvedTags.tags };
       });
 
       return { postId };
@@ -221,11 +248,26 @@ export const createPostRepository = ({
         const current = data.posts[index];
         const normalizedContent = normalizeContentForMode(current.mode, content);
         const contentText = deriveContentText(current.mode, normalizedContent);
-        const normalizedTags = normalizeTagIds(tags);
+        let resolvedTags: { tagIds: PostTagId[]; tags: StubTagRecord[] };
+        try {
+          resolvedTags = resolveTagLabels({
+            data,
+            ownerId: session.user.id,
+            labels: tags,
+            now,
+            generateId: generateTagId,
+          });
+        } catch (error) {
+          const code = (error as { code?: string }).code;
+          if (code) {
+            throw createError(422, "Invalid tag label", code);
+          }
+          throw error;
+        }
         validatePostInput({
           mode: current.mode,
           contentText,
-          tags: normalizedTags,
+          tagsCount: resolvedTags.tagIds.length,
         });
         const favoriteProvided = Object.prototype.hasOwnProperty.call(
           params,
@@ -238,14 +280,50 @@ export const createPostRepository = ({
           ...current,
           content: normalizedContent,
           contentText,
-          tags: normalizedTags,
+          tags: resolvedTags.tagIds,
           favorite: nextFavorite,
           updatedAt: now(),
         };
         const posts = data.posts.slice();
         posts[index] = next;
+        return { ...data, posts, tags: resolvedTags.tags };
+      });
+    },
+
+    async setFavorite({ postId, favorite }) {
+      const session = await ensureContext();
+      let updated: StubPostRecord | null = null;
+      const nextData = await store.write((data) => {
+        const index = data.posts.findIndex(
+          (post) =>
+            post.postId === postId &&
+            post.authorId === session.user.id &&
+            post.status === "active"
+        );
+        if (index < 0) {
+          throw createError(404, "Post not found", "post/not-found");
+        }
+        const current = data.posts[index];
+        updated = {
+          ...current,
+          favorite: Boolean(favorite),
+          updatedAt: now(),
+        };
+        const posts = data.posts.slice();
+        posts[index] = updated;
         return { ...data, posts };
       });
+      if (!updated) {
+        throw createError(404, "Post not found", "post/not-found");
+      }
+      return {
+        postId: updated.postId,
+        mode: updated.mode,
+        createdAt: updated.createdAt,
+        tags: resolveTagSummaries(nextData, updated.tags),
+        favorite: updated.favorite,
+        contentText: updated.contentText,
+      };
     },
 
     async trash({ postId }) {

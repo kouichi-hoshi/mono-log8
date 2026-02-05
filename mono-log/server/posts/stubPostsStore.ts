@@ -10,6 +10,14 @@ import type {
   PostTagId,
 } from "@/lib/posts/types";
 
+export type StubTagRecord = {
+  tagId: PostTagId;
+  ownerId: string;
+  label: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type StubPostRecord = {
   postId: string;
   authorId: string;
@@ -25,8 +33,9 @@ export type StubPostRecord = {
 };
 
 export type StubPostsStoreData = {
-  version: 1;
+  version: 2;
   posts: StubPostRecord[];
+  tags: StubTagRecord[];
 };
 
 export type StubPostsStore = {
@@ -36,14 +45,46 @@ export type StubPostsStore = {
   ) => Promise<StubPostsStoreData>;
 };
 
-const defaultData = (): StubPostsStoreData => ({ version: 1, posts: [] });
+const defaultData = (): StubPostsStoreData => ({
+  version: 2,
+  posts: [],
+  tags: [],
+});
 
 const parseData = (raw: string): StubPostsStoreData => {
-  const parsed = JSON.parse(raw) as StubPostsStoreData;
-  if (!parsed || parsed.version !== 1 || !Array.isArray(parsed.posts)) {
+  const parsed = JSON.parse(raw) as Partial<StubPostsStoreData> & {
+    version?: number;
+  };
+  if (!parsed || !Array.isArray(parsed.posts)) {
     throw new Error("Invalid stub posts store data");
   }
-  return parsed;
+  if (parsed.version === 2 && Array.isArray(parsed.tags)) {
+    return parsed as StubPostsStoreData;
+  }
+  if (parsed.version === 1) {
+    const tagMap = new Map<string, StubTagRecord>();
+    for (const post of parsed.posts) {
+      if (!post || !Array.isArray(post.tags)) continue;
+      for (const tagId of post.tags) {
+        if (!tagId) continue;
+        const key = `${post.authorId}:${tagId}`;
+        if (tagMap.has(key)) continue;
+        tagMap.set(key, {
+          tagId,
+          ownerId: post.authorId,
+          label: tagId,
+          createdAt: post.createdAt,
+          updatedAt: post.updatedAt,
+        });
+      }
+    }
+    return {
+      version: 2,
+      posts: parsed.posts as StubPostRecord[],
+      tags: Array.from(tagMap.values()),
+    };
+  }
+  throw new Error("Invalid stub posts store data");
 };
 
 export const createStubPostsStore = ({

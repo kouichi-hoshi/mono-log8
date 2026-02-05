@@ -4,11 +4,16 @@ export type PostStatus = "active" | "trashed";
 
 export type PostTagId = string;
 
+export type TagSummary = {
+  tagId: PostTagId;
+  label: string;
+};
+
 export type PostSummary = {
   postId: string;
   mode: PostMode;
   createdAt: string;
-  tags: PostTagId[];
+  tags: TagSummary[];
   favorite: boolean;
   contentText: string;
 };

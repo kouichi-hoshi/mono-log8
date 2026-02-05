@@ -10,16 +10,22 @@ type PostListProps = {
   posts: PostSummary[];
   onEdit: (post: PostSummary) => void;
   onDelete: (post: PostSummary) => void;
+  onToggleFavorite?: (post: PostSummary) => void;
   renderOverride?: (post: PostSummary) => ReactNode | null;
   actionsDisabled?: boolean;
+  showFavorite?: boolean;
+  pendingFavoriteIds?: Set<string>;
 };
 
 export function PostList({
   posts,
   onEdit,
   onDelete,
+  onToggleFavorite,
   renderOverride,
   actionsDisabled = false,
+  showFavorite = true,
+  pendingFavoriteIds,
 }: PostListProps) {
   return (
     <div className="space-y-4">
@@ -32,7 +38,10 @@ export function PostList({
             post={post}
             onEdit={onEdit}
             onDelete={onDelete}
+            onToggleFavorite={onToggleFavorite}
             actionsDisabled={actionsDisabled}
+            showFavorite={showFavorite}
+            pendingFavoriteIds={pendingFavoriteIds}
           />
         );
       })}

@@ -10,11 +10,13 @@ import type { PostMode } from "@/lib/posts/types";
 import { getValidationMessage } from "@/lib/posts/validationMessages";
 import { texts } from "@/lib/texts";
 import { useUnsavedChanges } from "@/components/posts/unsaved/unsaved-changes-provider";
+import type { PostSummary, TagSummary } from "@/lib/posts/types";
 
 import { EditorFrame } from "./editor-frame";
 import { MemoEditor } from "./memo-editor";
 import { NoteEditor } from "./note-editor";
-import { createEmptyDoc, deriveNoteText, isEmptyDoc, type NoteDoc } from "./note-utils";
+import { createEmptyDoc, isEmptyDoc, type NoteDoc } from "./note-utils";
+import { TagEditor } from "./tag-editor";
 
 const memoPlaceholder = texts.editor.placeholderMemo;
 
@@ -22,28 +24,27 @@ type NewPostEditorProps = {
   mode: PostMode;
   locked?: boolean;
   discardToken?: number;
-  onCreated?: (payload: {
-    postId: string;
-    mode: PostMode;
-    contentText: string;
-  }) => void;
+  tagSuggestions: TagSummary[];
+  onCreated?: (post: PostSummary) => void;
 };
 
 export function NewPostEditor({
   mode,
   locked = false,
   discardToken,
+  tagSuggestions,
   onCreated,
 }: NewPostEditorProps) {
   const [memoValue, setMemoValue] = React.useState("");
   const [noteContent, setNoteContent] = React.useState<NoteDoc>(createEmptyDoc());
+  const [tags, setTags] = React.useState<string[]>([]);
   const [expanded, setExpanded] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const inputRef = React.useRef<HTMLInputElement>(null);
 
   const hasEdits = mode === "memo"
-    ? memoValue.trim().length > 0
-    : !isEmptyDoc(noteContent);
+    ? memoValue.trim().length > 0 || tags.length > 0
+    : !isEmptyDoc(noteContent) || tags.length > 0;
   useUnsavedChanges("new-post-editor", hasEdits);
 
   React.useEffect(() => {
@@ -71,6 +72,7 @@ export function NewPostEditor({
   const resetEditor = () => {
     setMemoValue("");
     setNoteContent(createEmptyDoc());
+    setTags([]);
     setErrorMessage(null);
     inputRef.current?.focus();
   };
@@ -84,16 +86,13 @@ export function NewPostEditor({
     resetEditor();
   }, [mode]);
 
-  const normalizeMemoText = (value: string) =>
-    value.replace(/\r\n/g, "\n").replace(/\n+/g, " ").replace(/\s+/g, " ").trim();
-
   const handleSave = async () => {
     if (locked) return;
     setErrorMessage(null);
     const payload =
       mode === "memo"
-        ? { mode, content: memoValue, tags: [] }
-        : { mode, content: noteContent, tags: [] };
+        ? { mode, content: memoValue, tags }
+        : { mode, content: noteContent, tags };
 
     const result = await createPostAction(payload);
     if (!result.ok) {
@@ -105,10 +104,15 @@ export function NewPostEditor({
       return;
     }
 
-    const contentText =
-      mode === "memo" ? normalizeMemoText(memoValue) : deriveNoteText(noteContent);
     toast(texts.toast.success.saved);
-    onCreated?.({ postId: result.data.postId, mode, contentText });
+    onCreated?.({
+      postId: result.data.postId,
+      mode: result.data.mode,
+      createdAt: result.data.createdAt,
+      tags: result.data.tags,
+      favorite: result.data.favorite,
+      contentText: result.data.contentText,
+    });
     resetEditor();
   };
 
@@ -145,6 +149,13 @@ export function NewPostEditor({
         <div className="rounded-xl border bg-card p-4">
           <div className="space-y-3">
             {editorBody}
+            <TagEditor
+              tags={tags}
+              onChange={setTags}
+              suggestions={tagSuggestions}
+              disabled={locked}
+              onError={setErrorMessage}
+            />
             <div className="flex justify-end">
               <Button type="button" onClick={handleSave} disabled={locked}>
                 {texts.editor.save}
@@ -180,6 +191,13 @@ export function NewPostEditor({
           >
             <div className="space-y-3">
               {editorBody}
+              <TagEditor
+                tags={tags}
+                onChange={setTags}
+                suggestions={tagSuggestions}
+                disabled={locked}
+                onError={setErrorMessage}
+              />
               {!expanded ? (
                 <div className="flex items-center justify-between">
                   <Button

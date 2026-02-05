@@ -30,7 +30,24 @@ describe("EditNoteDialog", () => {
         trashedAt: null,
       },
     });
-    (updatePostAction as jest.Mock).mockResolvedValue({ ok: true, data: null });
+    (updatePostAction as jest.Mock).mockResolvedValue({
+      ok: true,
+      data: {
+        postId: "post-1",
+        mode: "note",
+        createdAt: new Date().toISOString(),
+        tags: [],
+        favorite: false,
+        contentText: "hello",
+        content: {
+          type: "doc",
+          content: [{ type: "paragraph", content: [{ type: "text", text: "hello" }] }],
+        },
+        status: "active",
+        updatedAt: new Date().toISOString(),
+        trashedAt: null,
+      },
+    });
 
     const onOpenChange = jest.fn();
     const onUpdated = jest.fn();
@@ -47,6 +64,7 @@ describe("EditNoteDialog", () => {
             favorite: false,
             contentText: "hello",
           }}
+          tagSuggestions={[]}
           onOpenChange={onOpenChange}
           onUpdated={onUpdated}
         />

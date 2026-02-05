@@ -13,32 +13,42 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import type { PostSummary } from "@/lib/posts/types";
+import type { PostSummary, TagSummary } from "@/lib/posts/types";
 import { getValidationMessage } from "@/lib/posts/validationMessages";
 import { texts } from "@/lib/texts";
 import { useUnsavedChanges } from "@/components/posts/unsaved/unsaved-changes-provider";
 
 import { EditorFrame } from "./editor-frame";
 import { NoteEditor } from "./note-editor";
-import { createEmptyDoc, deriveNoteText, isSameDoc, type NoteDoc } from "./note-utils";
+import { createEmptyDoc, isSameDoc, type NoteDoc } from "./note-utils";
+import { TagEditor } from "./tag-editor";
 
 type EditNoteDialogProps = {
   open: boolean;
   post: PostSummary | null;
+  tagSuggestions: TagSummary[];
   onOpenChange: (open: boolean) => void;
-  onUpdated: (contentText: string) => void;
+  onUpdated: (post: PostSummary) => void;
 };
 
-export function EditNoteDialog({ open, post, onOpenChange, onUpdated }: EditNoteDialogProps) {
+export function EditNoteDialog({
+  open,
+  post,
+  tagSuggestions,
+  onOpenChange,
+  onUpdated,
+}: EditNoteDialogProps) {
   const [loading, setLoading] = React.useState(false);
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
   const [noteContent, setNoteContent] = React.useState<NoteDoc>(createEmptyDoc());
   const [initialContent, setInitialContent] = React.useState<NoteDoc | null>(null);
+  const [tagLabels, setTagLabels] = React.useState<string[]>([]);
 
   const hasEdits =
     !!post &&
     initialContent !== null &&
-    !isSameDoc(noteContent, initialContent);
+    (!isSameDoc(noteContent, initialContent) ||
+      tagLabels.join("\n") !== post.tags.map((tag) => tag.label).join("\n"));
   const confirmDiscard = useUnsavedChanges(
     post ? `edit-note-${post.postId}` : "edit-note-none",
     hasEdits
@@ -60,6 +70,7 @@ export function EditNoteDialog({ open, post, onOpenChange, onUpdated }: EditNote
       const content = (result.data.content ?? createEmptyDoc()) as NoteDoc;
       setInitialContent(content);
       setNoteContent(content);
+      setTagLabels(result.data.tags.map((tag) => tag.label));
       setLoading(false);
     };
     load();
@@ -82,7 +93,7 @@ export function EditNoteDialog({ open, post, onOpenChange, onUpdated }: EditNote
     const result = await updatePostAction({
       postId: post.postId,
       content: noteContent,
-      tags: post.tags,
+      tags: tagLabels,
       favorite: post.favorite,
     });
     if (!result.ok) {
@@ -95,7 +106,14 @@ export function EditNoteDialog({ open, post, onOpenChange, onUpdated }: EditNote
     }
 
     toast(texts.toast.success.updated);
-    onUpdated(deriveNoteText(noteContent));
+    onUpdated({
+      postId: result.data.postId,
+      mode: result.data.mode,
+      createdAt: result.data.createdAt,
+      tags: result.data.tags,
+      favorite: result.data.favorite,
+      contentText: result.data.contentText,
+    });
     onOpenChange(false);
   };
 
@@ -133,6 +151,15 @@ export function EditNoteDialog({ open, post, onOpenChange, onUpdated }: EditNote
             readOnly={loading}
             testId="note-editor"
           />
+          <div className="mt-3">
+            <TagEditor
+              tags={tagLabels}
+              onChange={setTagLabels}
+              suggestions={tagSuggestions}
+              disabled={loading}
+              onError={setErrorMessage}
+            />
+          </div>
         </EditorFrame>
       </DialogContent>
     </Dialog>

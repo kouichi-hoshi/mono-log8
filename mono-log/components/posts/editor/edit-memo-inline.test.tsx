@@ -12,7 +12,21 @@ jest.mock("@/app/_actions/posts", () => ({
 describe("EditMemoInline", () => {
   test("updates memo content", async () => {
     const onUpdated = jest.fn();
-    (updatePostAction as jest.Mock).mockResolvedValue({ ok: true, data: null });
+    (updatePostAction as jest.Mock).mockResolvedValue({
+      ok: true,
+      data: {
+        postId: "post-1",
+        mode: "memo",
+        createdAt: "2025-01-01T00:00:00.000Z",
+        tags: [],
+        favorite: false,
+        contentText: "new",
+        content: { type: "doc", content: [] },
+        status: "active",
+        updatedAt: "2025-01-01T00:00:00.000Z",
+        trashedAt: null,
+      },
+    });
 
     render(
       <UnsavedChangesProvider>
@@ -21,6 +35,7 @@ describe("EditMemoInline", () => {
           initialText="old"
           tags={[]}
           favorite={false}
+          tagSuggestions={[]}
           onUpdated={onUpdated}
           onCancel={() => undefined}
         />
@@ -32,12 +47,30 @@ describe("EditMemoInline", () => {
     fireEvent.click(screen.getByRole("button", { name: texts.editor.update }));
 
     await waitFor(() => expect(updatePostAction).toHaveBeenCalled());
-    await waitFor(() => expect(onUpdated).toHaveBeenCalledWith("new"));
+    await waitFor(() =>
+      expect(onUpdated).toHaveBeenCalledWith(
+        expect.objectContaining({ postId: "post-1", contentText: "new" })
+      )
+    );
   });
 
   test("cancel with hasEdits shows confirm", async () => {
     const onCancel = jest.fn();
-    (updatePostAction as jest.Mock).mockResolvedValue({ ok: true, data: null });
+    (updatePostAction as jest.Mock).mockResolvedValue({
+      ok: true,
+      data: {
+        postId: "post-1",
+        mode: "memo",
+        createdAt: "2025-01-01T00:00:00.000Z",
+        tags: [],
+        favorite: false,
+        contentText: "old",
+        content: { type: "doc", content: [] },
+        status: "active",
+        updatedAt: "2025-01-01T00:00:00.000Z",
+        trashedAt: null,
+      },
+    });
 
     render(
       <UnsavedChangesProvider>
@@ -46,6 +79,7 @@ describe("EditMemoInline", () => {
           initialText="old"
           tags={[]}
           favorite={false}
+          tagSuggestions={[]}
           onUpdated={() => undefined}
           onCancel={onCancel}
         />

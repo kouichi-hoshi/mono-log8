@@ -13,12 +13,23 @@ describe("NewPostEditor", () => {
   test("saves memo and clears input", async () => {
     (createPostAction as jest.Mock).mockResolvedValue({
       ok: true,
-      data: { postId: "post-1" },
+      data: {
+        postId: "post-1",
+        mode: "memo",
+        createdAt: "2025-01-01T00:00:00.000Z",
+        tags: [],
+        favorite: false,
+        contentText: "hello",
+        content: { type: "doc", content: [] },
+        status: "active",
+        updatedAt: "2025-01-01T00:00:00.000Z",
+        trashedAt: null,
+      },
     });
 
     render(
       <UnsavedChangesProvider>
-        <NewPostEditor mode="memo" />
+        <NewPostEditor mode="memo" tagSuggestions={[]} />
       </UnsavedChangesProvider>
     );
 
@@ -35,7 +46,7 @@ describe("NewPostEditor", () => {
   test("note editor expands and collapses", () => {
     render(
       <UnsavedChangesProvider>
-        <NewPostEditor mode="note" />
+        <NewPostEditor mode="note" tagSuggestions={[]} />
       </UnsavedChangesProvider>
     );
 

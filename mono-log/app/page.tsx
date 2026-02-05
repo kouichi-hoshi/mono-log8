@@ -60,6 +60,8 @@ export default async function Home({ searchParams }: HomePageProps) {
           <PostsPage
             mode={mode}
             view={view}
+            tags={tags}
+            favorite={favorite}
             initialPosts={initialPosts}
             initialError={initialError}
           />

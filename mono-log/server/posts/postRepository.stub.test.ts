@@ -86,6 +86,7 @@ describe("postRepository (stub)", () => {
     const result = await repo.findMany({ status: "active", limit: 10 });
     expect(result.items).toHaveLength(1);
     expect(result.items[0]?.contentText).toBe("hello");
+    expect(result.items[0]?.tags[0]?.label).toBe("a");
     cleanup(dir);
   });
 
@@ -102,6 +103,7 @@ describe("postRepository (stub)", () => {
     expect(result.mode).toBe("memo");
     expect(result.contentText).toBe("hello");
     expect(result.favorite).toBe(true);
+    expect(result.tags[0]?.label).toBe("a");
     expect(result.status).toBe("active");
     cleanup(dir);
   });
@@ -124,9 +126,15 @@ describe("postRepository (stub)", () => {
     });
     expect(byMode.items).toHaveLength(1);
 
+    const all = await repo.findMany({ status: "active", limit: 10 });
+    const tagB = all.items
+      .flatMap((item) => item.tags)
+      .find((tag) => tag.label === "b")?.tagId;
+    expect(tagB).toBeTruthy();
+
     const byTags = await repo.findMany({
       status: "active",
-      tags: ["b"],
+      tags: tagB ? [tagB] : [],
       limit: 10,
     });
     expect(byTags.items).toHaveLength(2);
@@ -137,6 +145,41 @@ describe("postRepository (stub)", () => {
       limit: 10,
     });
     expect(byFavorite.items).toHaveLength(1);
+    cleanup(dir);
+  });
+
+  test("setFavorite updates item", async () => {
+    const { repo, dir } = await createRepo();
+    const { postId } = await repo.create({
+      mode: "memo",
+      content: "m1",
+      tags: [],
+      favorite: false,
+    });
+    const updated = await repo.setFavorite({ postId, favorite: true });
+    expect(updated.favorite).toBe(true);
+    cleanup(dir);
+  });
+
+  test("findTagCloud returns active tags only", async () => {
+    const { repo, dir } = await createRepo();
+    await repo.create({
+      mode: "memo",
+      content: "m1",
+      tags: ["active-tag"],
+      favorite: false,
+    });
+    const { postId: trashedId } = await repo.create({
+      mode: "memo",
+      content: "m2",
+      tags: ["trashed-tag"],
+      favorite: false,
+    });
+    await repo.trash({ postId: trashedId });
+
+    const cloud = await repo.findTagCloud();
+    expect(cloud.some((tag) => tag.label === "active-tag")).toBe(true);
+    expect(cloud.some((tag) => tag.label === "trashed-tag")).toBe(false);
     cleanup(dir);
   });
 

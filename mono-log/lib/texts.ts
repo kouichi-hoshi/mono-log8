@@ -71,6 +71,8 @@ export const texts = {
     modeMemo: "メモ",
     modeNote: "ノート",
     favorite: "お気に入り",
+    tags: "タグ",
+    clearFilters: "絞り込み解除",
   },
   editor: {
     save: "保存",
@@ -82,6 +84,8 @@ export const texts = {
     less: "折りたたむ",
     placeholderMemo: "メモを入力",
     placeholderNote: "ノートを入力",
+    placeholderTag: "タグを入力",
+    addTag: "追加",
   },
   guard: {
     unsavedTitle: "編集中の内容があります。破棄して続行しますか？",
