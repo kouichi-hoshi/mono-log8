@@ -25,7 +25,8 @@ export const authAdapter: AuthAdapter = {
       process.env.USE_STUB_AUTH
     );
     if (!enabled) return null;
-    const cookieValue = cookies().get(STUB_COOKIE_NAME)?.value;
+    const cookieStore = await cookies();
+    const cookieValue = cookieStore.get(STUB_COOKIE_NAME)?.value;
     return readStubSession(cookieValue);
   },
   async signIn() {
@@ -39,7 +40,8 @@ export const authAdapter: AuthAdapter = {
       throw error;
     }
     const definition = buildStubCookie(process.env.NODE_ENV);
-    cookies().set(definition.name, definition.value, definition.options);
+    const cookieStore = await cookies();
+    cookieStore.set(definition.name, definition.value, definition.options);
   },
   async signOut() {
     const enabled = isStubAuthEnabled(
@@ -52,6 +54,7 @@ export const authAdapter: AuthAdapter = {
       throw error;
     }
     const definition = buildClearStubCookie(process.env.NODE_ENV);
-    cookies().set(definition.name, definition.value, definition.options);
+    const cookieStore = await cookies();
+    cookieStore.set(definition.name, definition.value, definition.options);
   },
 };
