@@ -10,15 +10,16 @@ import type { NextSearchParams } from "@/lib/routing/types";
 import { authAdapter } from "@/server/auth/authAdapter";
 
 type HomePageProps = {
-  searchParams: NextSearchParams;
+  searchParams: NextSearchParams | Promise<NextSearchParams>;
 };
 
 export default async function Home({ searchParams }: HomePageProps) {
   const session = await authAdapter.getSession();
   const isLoggedIn = Boolean(session);
 
+  const resolvedSearchParams = await searchParams;
   const { canonical, changed } = normalizeHomeSearchParams(
-    searchParams,
+    resolvedSearchParams,
     isLoggedIn
   );
   if (changed) {
