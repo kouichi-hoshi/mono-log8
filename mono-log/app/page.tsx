@@ -10,6 +10,11 @@ import type { NextSearchParams } from "@/lib/routing/types";
 import { texts } from "@/lib/texts";
 import { authAdapter } from "@/server/auth/authAdapter";
 import { postRepository } from "@/server/posts/postRepository";
+import {
+  buildPostsFilterQueryKey,
+  buildPostsQueryKey,
+  shouldUseFilterQuery,
+} from "@/lib/posts/queryKeys";
 
 type HomePageProps = {
   searchParams: NextSearchParams | Promise<NextSearchParams>;
@@ -31,12 +36,17 @@ export default async function Home({ searchParams }: HomePageProps) {
 
   const headerRight = session ? <UserMenu user={session.user} /> : null;
 
-  let initialPosts = [];
+  let initialResult = null;
   let initialError: string | null = null;
   const mode = canonical.get("mode") === "note" ? "note" : "memo";
   const view = canonical.get("view") === "trash" ? "trash" : "normal";
   const tags = canonical.getAll("tags");
   const favorite = canonical.get("favorite") === "1";
+  const isFiltering = shouldUseFilterQuery({ view, tags, favorite });
+  const initialQueryKey =
+    view === "normal" && isFiltering
+      ? buildPostsFilterQueryKey({ view: "normal", mode, tags, favorite })
+      : buildPostsQueryKey({ view, mode });
 
   if (session) {
     try {
@@ -47,7 +57,7 @@ export default async function Home({ searchParams }: HomePageProps) {
         favorite: view === "trash" ? false : favorite,
         limit: 10,
       });
-      initialPosts = result.items;
+      initialResult = result;
     } catch {
       initialError = texts.toast.error.unknownError;
     }
@@ -62,7 +72,8 @@ export default async function Home({ searchParams }: HomePageProps) {
             view={view}
             tags={tags}
             favorite={favorite}
-            initialPosts={initialPosts}
+            initialResult={initialResult}
+            initialQueryKey={initialQueryKey}
             initialError={initialError}
           />
         ) : (

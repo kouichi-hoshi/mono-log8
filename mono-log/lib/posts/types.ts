@@ -26,3 +26,8 @@ export type PostDetail = PostSummary & {
   updatedAt: string;
   trashedAt: string | null;
 };
+
+export type FindManyPostsResult = {
+  items: PostSummary[];
+  nextCursor: string | null;
+};

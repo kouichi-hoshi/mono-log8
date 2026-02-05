@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 
 import { authAdapter } from "@/server/auth/authAdapter";
 import type {
+  FindManyPostsResult,
   PostContent,
   PostDetail,
   PostMode,
@@ -29,11 +30,6 @@ export type FindManyPostsParams = {
   favorite?: boolean;
   limit: number;
   cursor?: PostCursor;
-};
-
-export type FindManyPostsResult = {
-  items: PostSummary[];
-  nextCursor: PostCursor | null;
 };
 
 export type CreatePostParams = {

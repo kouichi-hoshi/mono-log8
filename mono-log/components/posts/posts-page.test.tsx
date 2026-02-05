@@ -1,8 +1,10 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import type { PostSummary } from "@/lib/posts/types";
 import { PostsPage } from "@/components/posts/posts-page";
 import { findPostsAction, findTagCloudAction } from "@/app/_actions/posts";
+import { buildPostsQueryKey } from "@/lib/posts/queryKeys";
 
 let currentParams = "mode=memo";
 const push = jest.fn();
@@ -40,35 +42,45 @@ describe("PostsPage", () => {
     (findTagCloudAction as jest.Mock).mockResolvedValue({ ok: true, data: [] });
   });
 
-  test("clears list when filter load fails", async () => {
+  test("clears list when mode switch load fails", async () => {
     (findPostsAction as jest.Mock).mockResolvedValue({
       ok: false,
       message: "Load failed",
     });
 
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false } },
+    });
+
     const { rerender } = render(
-      <PostsPage
-        mode="memo"
-        view="normal"
-        tags={[]}
-        favorite={false}
-        initialPosts={[basePost]}
-        initialError={null}
-      />
+      <QueryClientProvider client={queryClient}>
+        <PostsPage
+          mode="memo"
+          view="normal"
+          tags={[]}
+          favorite={false}
+          initialResult={{ items: [basePost], nextCursor: null }}
+          initialQueryKey={buildPostsQueryKey({ view: "normal", mode: "memo" })}
+          initialError={null}
+        />
+      </QueryClientProvider>
     );
 
     expect(screen.getByText("hello")).toBeInTheDocument();
 
     currentParams = "mode=note";
     rerender(
-      <PostsPage
-        mode="memo"
-        view="normal"
-        tags={[]}
-        favorite={false}
-        initialPosts={[basePost]}
-        initialError={null}
-      />
+      <QueryClientProvider client={queryClient}>
+        <PostsPage
+          mode="memo"
+          view="normal"
+          tags={[]}
+          favorite={false}
+          initialResult={{ items: [basePost], nextCursor: null }}
+          initialQueryKey={buildPostsQueryKey({ view: "normal", mode: "memo" })}
+          initialError={null}
+        />
+      </QueryClientProvider>
     );
 
     await waitFor(() => expect(findPostsAction).toHaveBeenCalled());

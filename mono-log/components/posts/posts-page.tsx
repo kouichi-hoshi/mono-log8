@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
 import {
-  findPostsAction,
   findTagCloudAction,
   setFavoriteAction,
   trashPostAction,
@@ -17,13 +16,30 @@ import { ClearFilters } from "@/components/posts/filters/clear-filters";
 import { FavoriteFilter } from "@/components/posts/filters/favorite-filter";
 import { TagFilter } from "@/components/posts/filters/tag-filter";
 import { PostList } from "@/components/posts/list/post-list";
+import { PostListSkeleton } from "@/components/posts/list/post-list-skeleton";
+import { useInfiniteScrollSentinel } from "@/components/posts/list/useInfiniteScrollSentinel";
+import { Button } from "@/components/ui/button";
 import {
   UnsavedChangesProvider,
   useConfirmDiscard,
   useHasUnsavedChanges,
 } from "@/components/posts/unsaved/unsaved-changes-provider";
 import { useGuardedSearchParams } from "@/components/posts/unsaved/use-guarded-search-params";
-import type { PostMode, PostSummary, TagSummary } from "@/lib/posts/types";
+import type {
+  FindManyPostsResult,
+  PostMode,
+  PostSummary,
+  TagSummary,
+} from "@/lib/posts/types";
+import { queryClient } from "@/lib/queryClient";
+import {
+  buildPostsFilterQueryKey,
+  buildPostsQueryKey,
+  serializeQueryKey,
+  shouldUseFilterQuery,
+} from "@/lib/posts/queryKeys";
+import { postsCache } from "@/lib/posts/postsCache";
+import { usePostsInfiniteQuery } from "@/lib/posts/usePostsInfiniteQuery";
 import { texts } from "@/lib/texts";
 
 type PostsPageProps = {
@@ -31,7 +47,8 @@ type PostsPageProps = {
   view: "normal" | "trash";
   tags: string[];
   favorite: boolean;
-  initialPosts: PostSummary[];
+  initialResult: FindManyPostsResult | null;
+  initialQueryKey: readonly unknown[] | null;
   initialError?: string | null;
 };
 
@@ -40,7 +57,8 @@ export function PostsPage({
   view,
   tags,
   favorite,
-  initialPosts,
+  initialResult,
+  initialQueryKey,
   initialError,
 }: PostsPageProps) {
   return (
@@ -50,7 +68,8 @@ export function PostsPage({
         view={view}
         tags={tags}
         favorite={favorite}
-        initialPosts={initialPosts}
+        initialResult={initialResult}
+        initialQueryKey={initialQueryKey}
         initialError={initialError}
       />
     </UnsavedChangesProvider>
@@ -62,10 +81,10 @@ function PostsPageInner({
   view,
   tags,
   favorite,
-  initialPosts,
+  initialResult,
+  initialQueryKey,
   initialError,
 }: PostsPageProps) {
-  const [posts, setPosts] = React.useState<PostSummary[]>(initialPosts);
   const [editingPost, setEditingPost] = React.useState<PostSummary | null>(null);
   const [noteDialogOpen, setNoteDialogOpen] = React.useState(false);
   const [discardToken, setDiscardToken] = React.useState(0);
@@ -74,15 +93,6 @@ function PostsPageInner({
     () => new Set()
   );
   const favoritePendingRef = React.useRef(new Set<string>());
-  const [filters, setFilters] = React.useState({
-    mode,
-    view,
-    tags,
-    favorite,
-  });
-  const [errorMessage, setErrorMessage] = React.useState<string | null>(
-    initialError ?? null
-  );
 
   const searchParams = useSearchParams();
   const { guardedPush } = useGuardedSearchParams();
@@ -90,28 +100,49 @@ function PostsPageInner({
   const confirmDiscard = useConfirmDiscard();
 
   const derivedFilters = React.useMemo(() => {
-    if (!searchParams) return filters;
+    if (!searchParams) {
+      return { mode, view, tags, favorite } as const;
+    }
     return {
       mode: searchParams.get("mode") === "note" ? "note" : "memo",
       view: searchParams.get("view") === "trash" ? "trash" : "normal",
       tags: searchParams.getAll("tags"),
       favorite: searchParams.get("favorite") === "1",
-    } satisfies typeof filters;
-  }, [filters, searchParams]);
+    } as const;
+  }, [favorite, mode, searchParams, tags, view]);
 
-  const matchesFilters = React.useCallback(
-    (post: PostSummary, nextFilters = filters) => {
-      if (nextFilters.view === "trash") return false;
-      if (post.mode !== nextFilters.mode) return false;
-      if (nextFilters.favorite && !post.favorite) return false;
-      if (nextFilters.tags.length > 0) {
-        const tagIds = post.tags.map((tag) => tag.tagId);
-        if (!nextFilters.tags.some((id) => tagIds.includes(id))) return false;
-      }
-      return true;
+  const isFiltering = shouldUseFilterQuery({
+    view: derivedFilters.view,
+    tags: derivedFilters.tags,
+    favorite: derivedFilters.favorite,
+  });
+
+  const infinite = usePostsInfiniteQuery({
+    mode: derivedFilters.mode,
+    view: derivedFilters.view,
+    tags: derivedFilters.tags,
+    favorite: derivedFilters.favorite,
+    initialResult,
+    initialQueryKey: initialQueryKey ?? undefined,
+  });
+
+  const posts = React.useMemo(() => {
+    return infinite.data?.pages.flatMap((page) => page.items) ?? [];
+  }, [infinite.data]);
+
+  const sentinelRef = useInfiniteScrollSentinel({
+    disabled: !infinite.hasNextPage || infinite.isFetchingNextPage,
+    onIntersect: () => {
+      if (!infinite.hasNextPage) return;
+      if (infinite.isFetchingNextPage) return;
+      void infinite.fetchNextPage();
     },
-    [filters]
-  );
+  });
+
+  React.useEffect(() => {
+    if (!infinite.isFetchNextPageError) return;
+    toast.error(texts.toast.error.unknownError);
+  }, [infinite.isFetchNextPageError]);
 
   const loadTagCloud = React.useCallback(async () => {
     const result = await findTagCloudAction();
@@ -121,49 +152,41 @@ function PostsPageInner({
     setTagCloud(result.data);
   }, []);
 
+  const previousFiltersKeyRef = React.useRef<string | null>(null);
   React.useEffect(() => {
-    const same =
-      filters.mode === derivedFilters.mode &&
-      filters.view === derivedFilters.view &&
-      filters.favorite === derivedFilters.favorite &&
-      filters.tags.join("\n") === derivedFilters.tags.join("\n");
-    if (same) return;
+    const key = serializeQueryKey(
+      isFiltering
+        ? buildPostsFilterQueryKey({
+            view: "normal",
+            mode: derivedFilters.mode,
+            tags: derivedFilters.tags,
+            favorite: derivedFilters.favorite,
+          })
+        : buildPostsQueryKey({
+            view: derivedFilters.view,
+            mode: derivedFilters.mode,
+          })
+    );
+    if (previousFiltersKeyRef.current === key) return;
+    previousFiltersKeyRef.current = key;
 
-    setFilters(derivedFilters);
     setEditingPost(null);
     setNoteDialogOpen(false);
     setDiscardToken((prev) => prev + 1);
-
-    const load = async () => {
-      setErrorMessage(null);
-      const result = await findPostsAction({
-        status: derivedFilters.view === "trash" ? "trashed" : "active",
-        mode: derivedFilters.view === "trash" ? undefined : derivedFilters.mode,
-        tags: derivedFilters.view === "trash" ? [] : derivedFilters.tags,
-        favorite: derivedFilters.view === "trash" ? false : derivedFilters.favorite,
-        limit: 10,
-      });
-      if (!result.ok) {
-        setErrorMessage(result.message || texts.toast.error.unknownError);
-        setPosts([]);
-        return;
-      }
-      setPosts(result.data.items);
-    };
-    void load();
-  }, [derivedFilters, filters]);
+  }, [derivedFilters, isFiltering]);
 
   React.useEffect(() => {
-    if (filters.view === "trash") {
+    if (derivedFilters.view === "trash") {
       setTagCloud([]);
       return;
     }
     void loadTagCloud();
-  }, [filters.view, loadTagCloud]);
+  }, [derivedFilters.view, loadTagCloud]);
 
   const handleCreated = (post: PostSummary) => {
-    if (!matchesFilters(post)) return;
-    setPosts((prev) => [post, ...prev]);
+    postsCache.onPostUpserted(queryClient, post);
+    postsCache.clearFiltersCache(queryClient);
+    if (isFiltering) void infinite.refetch();
     void loadTagCloud();
   };
 
@@ -180,13 +203,9 @@ function PostsPageInner({
   };
 
   const handlePostUpdated = (post: PostSummary) => {
-    if (!matchesFilters(post)) {
-      setPosts((prev) => prev.filter((item) => item.postId !== post.postId));
-    } else {
-      setPosts((prev) =>
-        prev.map((item) => (item.postId === post.postId ? post : item))
-      );
-    }
+    postsCache.onPostUpserted(queryClient, post);
+    postsCache.clearFiltersCache(queryClient);
+    if (isFiltering) void infinite.refetch();
     setEditingPost(null);
     setNoteDialogOpen(false);
     void loadTagCloud();
@@ -227,26 +246,28 @@ function PostsPageInner({
       return;
     }
     toast(texts.toast.success.trashed);
-    setPosts((prev) => prev.filter((item) => item.postId !== post.postId));
+    postsCache.onPostTrashed(queryClient, { postId: post.postId, mode: post.mode });
+    postsCache.clearFiltersCache(queryClient);
+    if (isFiltering) void infinite.refetch();
     void loadTagCloud();
   };
 
   const locked = noteDialogOpen;
-  const allowActions = filters.view !== "trash";
-  const showFilters = filters.view !== "trash";
+  const allowActions = derivedFilters.view !== "trash";
+  const showFilters = derivedFilters.view !== "trash";
 
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,360px)_1fr]">
       <section className="rounded-xl border bg-card p-4">
         <h2 className="text-sm font-semibold">{texts.posts.editorTitle}</h2>
-        {filters.view === "trash" ? (
+        {derivedFilters.view === "trash" ? (
           <p className="mt-2 text-sm text-muted-foreground">
             {texts.posts.trashDisabled}
           </p>
         ) : (
           <div className="mt-4">
             <NewPostEditor
-              mode={filters.mode}
+              mode={derivedFilters.mode}
               locked={locked}
               discardToken={discardToken}
               tagSuggestions={tagCloud}
@@ -258,61 +279,97 @@ function PostsPageInner({
 
       <section className="rounded-xl border bg-card p-4">
         <h2 className="text-sm font-semibold">{texts.posts.listTitle}</h2>
-        {errorMessage ? (
-          <p className="mt-2 text-sm text-muted-foreground">{errorMessage}</p>
+        {initialError && infinite.isPending && !infinite.data ? (
+          <p className="mt-2 text-sm text-muted-foreground">{initialError}</p>
         ) : null}
         {showFilters ? (
           <div className="mt-4 space-y-3">
             <TagFilter
               tags={tagCloud}
-              activeTagIds={filters.tags}
+              activeTagIds={derivedFilters.tags}
               onToggle={async (tagId) => {
-                const next = filters.tags.includes(tagId)
-                  ? filters.tags.filter((item) => item !== tagId)
-                  : [...filters.tags, tagId];
+                const next = derivedFilters.tags.includes(tagId)
+                  ? derivedFilters.tags.filter((item) => item !== tagId)
+                  : [...derivedFilters.tags, tagId];
                 await guardedPush({ tags: next });
               }}
             />
             <div className="flex flex-wrap items-center gap-2">
               <FavoriteFilter
-                active={filters.favorite}
-                onToggle={async () => guardedPush({ favorite: !filters.favorite })}
+                active={derivedFilters.favorite}
+                onToggle={async () =>
+                  guardedPush({ favorite: !derivedFilters.favorite })
+                }
               />
               <ClearFilters
-                disabled={!filters.favorite && filters.tags.length === 0}
+                disabled={!derivedFilters.favorite && derivedFilters.tags.length === 0}
                 onClick={async () => guardedPush({ tags: [], favorite: false })}
               />
             </div>
           </div>
         ) : null}
         <div className="mt-4">
-          {posts.length === 0 ? (
+          {infinite.isPending && !infinite.data ? (
+            <PostListSkeleton count={10} />
+          ) : infinite.isError && !infinite.data ? (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                {infinite.error?.message || texts.toast.error.unknownError}
+              </p>
+              <div>
+                <Button type="button" variant="outline" onClick={() => void infinite.refetch()}>
+                  {texts.toast.action.retry}
+                </Button>
+              </div>
+            </div>
+          ) : posts.length === 0 ? (
             <p className="text-sm text-muted-foreground">{texts.posts.empty}</p>
           ) : (
-            <PostList
-              posts={posts}
-              onEdit={allowActions ? handleEdit : () => undefined}
-              onDelete={allowActions ? handleDelete : () => undefined}
-              onToggleFavorite={allowActions ? handleToggleFavorite : undefined}
-              actionsDisabled={!allowActions}
-              showFavorite={filters.view !== "trash"}
-              pendingFavoriteIds={favoritePendingIds}
-              renderOverride={(post) =>
-                editingPost &&
-                editingPost.mode === "memo" &&
-                editingPost.postId === post.postId ? (
-                  <EditMemoInline
-                    postId={editingPost.postId}
-                    initialText={editingPost.contentText}
-                    tags={editingPost.tags}
-                    favorite={editingPost.favorite}
-                    tagSuggestions={tagCloud}
-                    onUpdated={handlePostUpdated}
-                    onCancel={() => setEditingPost(null)}
-                  />
-                ) : null
-              }
-            />
+            <div className="space-y-4">
+              <PostList
+                posts={posts}
+                onEdit={allowActions ? handleEdit : () => undefined}
+                onDelete={allowActions ? handleDelete : () => undefined}
+                onToggleFavorite={allowActions ? handleToggleFavorite : undefined}
+                actionsDisabled={!allowActions}
+                showFavorite={derivedFilters.view !== "trash"}
+                pendingFavoriteIds={favoritePendingIds}
+                renderOverride={(post) =>
+                  editingPost &&
+                  editingPost.mode === "memo" &&
+                  editingPost.postId === post.postId ? (
+                    <EditMemoInline
+                      postId={editingPost.postId}
+                      initialText={editingPost.contentText}
+                      tags={editingPost.tags}
+                      favorite={editingPost.favorite}
+                      tagSuggestions={tagCloud}
+                      onUpdated={handlePostUpdated}
+                      onCancel={() => setEditingPost(null)}
+                    />
+                  ) : null
+                }
+              />
+
+              {infinite.isFetchingNextPage ? <PostListSkeleton count={10} /> : null}
+
+              {infinite.isFetchNextPageError ? (
+                <div className="flex justify-center">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => void infinite.fetchNextPage()}
+                    disabled={infinite.isFetchingNextPage}
+                  >
+                    {texts.toast.action.retry}
+                  </Button>
+                </div>
+              ) : null}
+
+              {infinite.hasNextPage ? (
+                <div ref={sentinelRef} className="h-1" aria-hidden="true" />
+              ) : null}
+            </div>
           )}
         </div>
       </section>
