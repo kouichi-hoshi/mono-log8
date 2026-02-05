@@ -89,6 +89,23 @@ describe("postRepository (stub)", () => {
     cleanup(dir);
   });
 
+  test("findById returns detail", async () => {
+    const { repo, dir } = await createRepo();
+    const { postId } = await repo.create({
+      mode: "memo",
+      content: "hello",
+      tags: ["a"],
+      favorite: true,
+    });
+    const result = await repo.findById({ postId });
+    expect(result.postId).toBe(postId);
+    expect(result.mode).toBe("memo");
+    expect(result.contentText).toBe("hello");
+    expect(result.favorite).toBe(true);
+    expect(result.status).toBe("active");
+    cleanup(dir);
+  });
+
   test("filters by mode/tags/favorite", async () => {
     const { repo, dir } = await createRepo();
     await repo.create({ mode: "memo", content: "m1", tags: ["a"], favorite: true });

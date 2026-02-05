@@ -3,7 +3,12 @@ import "server-only";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname } from "node:path";
 
-import type { PostContent, PostMode, PostStatus, PostTagId } from "./postRepository";
+import type {
+  PostContent,
+  PostMode,
+  PostStatus,
+  PostTagId,
+} from "@/lib/posts/types";
 
 export type StubPostRecord = {
   postId: string;

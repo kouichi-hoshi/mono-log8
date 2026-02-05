@@ -67,5 +67,31 @@ export const texts = {
   post: {
     delete: "削除",
     hardDelete: "完全に削除",
+    edit: "編集",
+    modeMemo: "メモ",
+    modeNote: "ノート",
+    favorite: "お気に入り",
+  },
+  editor: {
+    save: "保存",
+    update: "更新",
+    cancel: "キャンセル",
+    expand: "拡大",
+    collapse: "戻す",
+    more: "もっと見る",
+    less: "折りたたむ",
+    placeholderMemo: "メモを入力",
+    placeholderNote: "ノートを入力",
+  },
+  guard: {
+    unsavedTitle: "編集中の内容があります。破棄して続行しますか？",
+    discard: "破棄して続行",
+    keep: "編集を続ける",
+  },
+  posts: {
+    editorTitle: "エディタ",
+    listTitle: "投稿一覧",
+    empty: "投稿がありません。",
+    trashDisabled: "ごみ箱表示中は新規投稿を作成できません。",
   },
 } as const;

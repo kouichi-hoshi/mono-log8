@@ -1,4 +1,4 @@
-import type { PostContent, PostMode } from "./postRepository";
+import type { PostContent, PostMode } from "@/lib/posts/types";
 
 type ProseMirrorNode = {
   type?: string;

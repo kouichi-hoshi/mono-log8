@@ -38,6 +38,28 @@ export const createPostAction = async (params: Parameters<typeof postRepository.
   }
 };
 
+export const findPostsAction = async (
+  params: Parameters<typeof postRepository.findMany>[0]
+) => {
+  try {
+    const result = await postRepository.findMany(params);
+    return { ok: true, data: result } satisfies ActionResult<typeof result>;
+  } catch (error) {
+    return toActionError(error);
+  }
+};
+
+export const findPostAction = async (
+  params: Parameters<typeof postRepository.findById>[0]
+) => {
+  try {
+    const result = await postRepository.findById(params);
+    return { ok: true, data: result } satisfies ActionResult<typeof result>;
+  } catch (error) {
+    return toActionError(error);
+  }
+};
+
 export const updatePostAction = async (params: Parameters<typeof postRepository.update>[0]) => {
   try {
     await postRepository.update(params);

@@ -1,4 +1,4 @@
-import type { PostMode, PostTagId } from "./postRepository";
+import type { PostMode, PostTagId } from "@/lib/posts/types";
 
 export type ValidationContext = {
   mode: PostMode;

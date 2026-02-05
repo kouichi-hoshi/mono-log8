@@ -3,6 +3,14 @@ import "server-only";
 import { randomUUID } from "node:crypto";
 
 import { authAdapter } from "@/server/auth/authAdapter";
+import type {
+  PostContent,
+  PostDetail,
+  PostMode,
+  PostStatus,
+  PostSummary,
+  PostTagId,
+} from "@/lib/posts/types";
 
 import { deriveContentText, normalizeContentForMode } from "./contentText";
 import { isStubPostsEnabled } from "./stubPostsGuard";
@@ -10,24 +18,7 @@ import { createStubPostsStore } from "./stubPostsStore";
 import type { StubPostRecord } from "./stubPostsStore";
 import { normalizeTagIds, validatePostInput } from "./validation";
 
-export type PostMode = "memo" | "note";
-
-export type PostStatus = "active" | "trashed";
-
 export type PostCursor = string;
-
-export type PostTagId = string;
-
-export type PostContent = unknown;
-
-export type PostSummary = {
-  postId: string;
-  mode: PostMode;
-  createdAt: string;
-  tags: PostTagId[];
-  favorite: boolean;
-  contentText: string;
-};
 
 export type FindManyPostsParams = {
   status: PostStatus;
@@ -59,6 +50,7 @@ export type UpdatePostParams = {
 
 export interface PostRepository {
   findMany(params: FindManyPostsParams): Promise<FindManyPostsResult>;
+  findById(params: { postId: string }): Promise<PostDetail>;
   create(params: CreatePostParams): Promise<{ postId: string }>;
   update(params: UpdatePostParams): Promise<void>;
   trash(params: { postId: string }): Promise<void>;
@@ -158,6 +150,29 @@ export const createPostRepository = ({
           contentText: post.contentText,
         })),
         nextCursor,
+      };
+    },
+    async findById({ postId }) {
+      const session = await ensureContext();
+      const data = await store.read();
+      const post = data.posts.find(
+        (record) =>
+          record.postId === postId && record.authorId === session.user.id
+      );
+      if (!post) {
+        throw createError(404, "Post not found", "post/not-found");
+      }
+      return {
+        postId: post.postId,
+        mode: post.mode,
+        createdAt: post.createdAt,
+        tags: post.tags,
+        favorite: post.favorite,
+        contentText: post.contentText,
+        content: post.content,
+        status: post.status,
+        updatedAt: post.updatedAt,
+        trashedAt: post.trashedAt,
       };
     },
 
