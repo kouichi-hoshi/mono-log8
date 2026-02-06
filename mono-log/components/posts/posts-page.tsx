@@ -262,21 +262,66 @@ function PostsPageInner({
       <div className="order-2 md:order-0">
         <section className="rounded-xl border bg-card p-4">
           <h2 className="text-sm font-semibold">{texts.posts.editorTitle}</h2>
-          {derivedFilters.view === "trash" ? (
-            <p className="mt-2 text-sm text-muted-foreground">
-              {texts.posts.trashDisabled}
-            </p>
-          ) : (
-            <div className="mt-4">
-              <NewPostEditor
+          <div className="mt-4 flex flex-col gap-3">
+            <div className="order-1 md:order-2">
+              {showFilters ? (
+                <div className="space-y-3">
+                  <TagFilter
+                    tags={tagCloud}
+                    activeTagIds={derivedFilters.tags}
+                    onToggle={async (tagId) => {
+                      const next = derivedFilters.tags.includes(tagId)
+                        ? derivedFilters.tags.filter((item) => item !== tagId)
+                        : [...derivedFilters.tags, tagId];
+                      await guardedPush({ tags: next });
+                    }}
+                  />
+                  <div className="flex flex-wrap items-center gap-2">
+                    <FavoriteFilter
+                      active={derivedFilters.favorite}
+                      onToggle={async () =>
+                        guardedPush({ favorite: !derivedFilters.favorite })
+                      }
+                    />
+                    <ClearFilters
+                      disabled={
+                        !derivedFilters.favorite && derivedFilters.tags.length === 0
+                      }
+                      onClick={async () => guardedPush({ tags: [], favorite: false })}
+                    />
+                  </div>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="order-2 md:order-3">
+              {derivedFilters.view === "trash" ? (
+                <p className="text-sm text-muted-foreground">
+                  {texts.posts.trashDisabled}
+                </p>
+              ) : (
+                <NewPostEditor
+                  mode={derivedFilters.mode}
+                  locked={locked}
+                  discardToken={discardToken}
+                  tagSuggestions={tagCloud}
+                  onCreated={handleCreated}
+                />
+              )}
+            </div>
+
+            <div className="order-3 md:order-1">
+              <ModeSwitch
                 mode={derivedFilters.mode}
-                locked={locked}
-                discardToken={discardToken}
-                tagSuggestions={tagCloud}
-                onCreated={handleCreated}
+                view={derivedFilters.view}
+                hideModeSwitch={derivedFilters.view === "trash"}
+                onChangeMode={(nextMode) => guardedPush({ mode: nextMode })}
+                onChangeView={(nextView) =>
+                  guardedPush({ view: nextView === "trash" ? "trash" : undefined })
+                }
               />
             </div>
-          )}
+          </div>
         </section>
       </div>
 
@@ -286,46 +331,6 @@ function PostsPageInner({
           {initialError && infinite.isPending && !infinite.data ? (
             <p className="mt-2 text-sm text-muted-foreground">{initialError}</p>
           ) : null}
-          <div className="mt-4 space-y-3">
-            <ModeSwitch
-              mode={derivedFilters.mode}
-              view={derivedFilters.view}
-              hideModeSwitch={derivedFilters.view === "trash"}
-              onChangeMode={(nextMode) => guardedPush({ mode: nextMode })}
-              onChangeView={(nextView) =>
-                guardedPush({ view: nextView === "trash" ? "trash" : undefined })
-              }
-            />
-
-            {showFilters ? (
-              <>
-                <TagFilter
-                  tags={tagCloud}
-                  activeTagIds={derivedFilters.tags}
-                  onToggle={async (tagId) => {
-                    const next = derivedFilters.tags.includes(tagId)
-                      ? derivedFilters.tags.filter((item) => item !== tagId)
-                      : [...derivedFilters.tags, tagId];
-                    await guardedPush({ tags: next });
-                  }}
-                />
-                <div className="flex flex-wrap items-center gap-2">
-                  <FavoriteFilter
-                    active={derivedFilters.favorite}
-                    onToggle={async () =>
-                      guardedPush({ favorite: !derivedFilters.favorite })
-                    }
-                  />
-                  <ClearFilters
-                    disabled={
-                      !derivedFilters.favorite && derivedFilters.tags.length === 0
-                    }
-                    onClick={async () => guardedPush({ tags: [], favorite: false })}
-                  />
-                </div>
-              </>
-            ) : null}
-          </div>
           <div className="mt-4">
             {infinite.isPending && !infinite.data ? (
               <PostListSkeleton count={10} />

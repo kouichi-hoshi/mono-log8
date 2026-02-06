@@ -24,7 +24,6 @@ export function TagEditor({
   disabled = false,
   onError,
 }: TagEditorProps) {
-  const [open, setOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState("");
 
   const emitError = (message: string | null) => {
@@ -67,76 +66,67 @@ export function TagEditor({
 
   return (
     <div className="space-y-2">
-      <Button
-        type="button"
-        variant="outline"
-        size="sm"
-        onClick={() => setOpen((prev) => !prev)}
-        disabled={disabled}
-      >
+      <span className="inline-flex rounded-full px-3 py-1 text-sm">
         {texts.post.tags}
-      </Button>
-
-      {open ? (
-        <div className="space-y-3 rounded-md border bg-background p-3">
-          {availableSuggestions.length ? (
-            <div className="flex flex-wrap gap-2">
-              {availableSuggestions.map((tag) => (
-                <Button
-                  key={tag.tagId}
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  onClick={() => addTag(tag.label)}
-                  disabled={disabled}
-                >
-                  {tag.label}
-                </Button>
-              ))}
-            </div>
-          ) : null}
-
-          <div className="flex flex-wrap items-center gap-2">
-            <input
-              value={inputValue}
-              onChange={(event) => setInputValue(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key !== "Enter") return;
-                event.preventDefault();
-                if (disabled) return;
-                addTag(inputValue);
-              }}
-              placeholder={texts.editor.placeholderTag}
-              className="flex-1 rounded-md border px-2 py-1 text-sm"
-              disabled={disabled}
-            />
-            <Button
-              type="button"
-              size="sm"
-              onClick={() => addTag(inputValue)}
-              disabled={disabled}
-            >
-              {texts.editor.addTag}
-            </Button>
-          </div>
-
-          {tags.length ? (
-            <div className="flex flex-wrap gap-2">
-              {tags.map((label) => (
-                <button
-                  key={label}
-                  type="button"
-                  className="rounded-full border px-2 py-0.5 text-xs"
-                  onClick={() => removeTag(label)}
-                  disabled={disabled}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          ) : null}
+      </span>
+      <div className="space-y-3 rounded-md border bg-background p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            value={inputValue}
+            onChange={(event) => setInputValue(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") return;
+              event.preventDefault();
+              if (disabled) return;
+              addTag(inputValue);
+            }}
+            placeholder={texts.editor.placeholderTag}
+            className="flex-1 rounded-md border px-2 py-1 text-sm"
+            disabled={disabled}
+          />
+          <Button
+            type="button"
+            size="sm"
+            onClick={() => addTag(inputValue)}
+            disabled={disabled}
+          >
+            {texts.editor.addTag}
+          </Button>
         </div>
-      ) : null}
+
+        {tags.length ? (
+          <div className="flex flex-wrap gap-2">
+            {tags.map((label) => (
+              <button
+                key={label}
+                type="button"
+                className="rounded-full border px-2 py-0.5 text-xs"
+                onClick={() => removeTag(label)}
+                disabled={disabled}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {availableSuggestions.length ? (
+          <div className="flex flex-wrap gap-2">
+            {availableSuggestions.map((tag) => (
+              <Button
+                key={tag.tagId}
+                type="button"
+                size="sm"
+                variant="secondary"
+                onClick={() => addTag(tag.label)}
+                disabled={disabled}
+              >
+                {tag.label}
+              </Button>
+            ))}
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }

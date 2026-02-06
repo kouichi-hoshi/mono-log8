@@ -12,6 +12,7 @@ type EditorFrameProps = {
   footer?: React.ReactNode;
   showHeader?: boolean;
   showFooter?: boolean;
+  showClose?: boolean;
   className?: string;
   children: React.ReactNode;
   testId?: string;
@@ -24,6 +25,7 @@ export function EditorFrame({
   footer,
   showHeader = true,
   showFooter = true,
+  showClose = true,
   className,
   children,
   testId,
@@ -39,9 +41,11 @@ export function EditorFrame({
       {showHeader ? (
         <div className="flex items-center justify-between border-b px-4 py-3">
           <h2 className="text-sm font-semibold">{title}</h2>
-          <Button type="button" variant="ghost" size="sm" onClick={onClose}>
-            {closeLabel}
-          </Button>
+          {showClose ? (
+            <Button type="button" variant="ghost" size="sm" onClick={onClose}>
+              {closeLabel}
+            </Button>
+          ) : null}
         </div>
       ) : null}
       <div className="flex-1 p-4">{children}</div>

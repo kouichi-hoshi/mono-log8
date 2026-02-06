@@ -137,8 +137,17 @@ export function EditNoteDialog({
           closeLabel={texts.editor.cancel}
           onClose={() => handleCloseRequest(false)}
           className="border-0"
+          showClose={false}
           footer={
-            <div className="flex justify-end">
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => handleCloseRequest(false)}
+                disabled={loading}
+              >
+                {texts.editor.cancel}
+              </Button>
               <Button type="button" onClick={handleUpdate} disabled={loading}>
                 {texts.editor.update}
               </Button>

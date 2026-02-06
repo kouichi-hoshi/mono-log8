@@ -190,16 +190,8 @@ export function NewPostEditor({
             }
           >
             <div className="space-y-3">
-              {editorBody}
-              <TagEditor
-                tags={tags}
-                onChange={setTags}
-                suggestions={tagSuggestions}
-                disabled={locked}
-                onError={setErrorMessage}
-              />
               {!expanded ? (
-                <div className="flex items-center justify-between">
+                <div className="flex justify-start">
                   <Button
                     type="button"
                     variant="outline"
@@ -209,6 +201,18 @@ export function NewPostEditor({
                   >
                     {texts.editor.expand}
                   </Button>
+                </div>
+              ) : null}
+              {editorBody}
+              <TagEditor
+                tags={tags}
+                onChange={setTags}
+                suggestions={tagSuggestions}
+                disabled={locked}
+                onError={setErrorMessage}
+              />
+              {!expanded ? (
+                <div className="flex justify-end">
                   <Button type="button" onClick={handleSave} disabled={locked}>
                     {texts.editor.save}
                   </Button>
