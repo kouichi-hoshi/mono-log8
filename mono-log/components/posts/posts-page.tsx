@@ -259,135 +259,143 @@ function PostsPageInner({
 
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,360px)_1fr]">
-      <section className="rounded-xl border bg-card p-4">
-        <h2 className="text-sm font-semibold">{texts.posts.editorTitle}</h2>
-        {derivedFilters.view === "trash" ? (
-          <p className="mt-2 text-sm text-muted-foreground">
-            {texts.posts.trashDisabled}
-          </p>
-        ) : (
-          <div className="mt-4">
-            <NewPostEditor
-              mode={derivedFilters.mode}
-              locked={locked}
-              discardToken={discardToken}
-              tagSuggestions={tagCloud}
-              onCreated={handleCreated}
-            />
-          </div>
-        )}
-      </section>
-
-      <section className="rounded-xl border bg-card p-4">
-        <h2 className="text-sm font-semibold">{texts.posts.listTitle}</h2>
-        {initialError && infinite.isPending && !infinite.data ? (
-          <p className="mt-2 text-sm text-muted-foreground">{initialError}</p>
-        ) : null}
-        <div className="mt-4 space-y-3">
-          <ModeSwitch
-            mode={derivedFilters.mode}
-            view={derivedFilters.view}
-            hideModeSwitch={derivedFilters.view === "trash"}
-            onChangeMode={(nextMode) => guardedPush({ mode: nextMode })}
-            onChangeView={(nextView) =>
-              guardedPush({ view: nextView === "trash" ? "trash" : undefined })
-            }
-          />
-
-          {showFilters ? (
-            <>
-              <TagFilter
-                tags={tagCloud}
-                activeTagIds={derivedFilters.tags}
-                onToggle={async (tagId) => {
-                  const next = derivedFilters.tags.includes(tagId)
-                    ? derivedFilters.tags.filter((item) => item !== tagId)
-                    : [...derivedFilters.tags, tagId];
-                  await guardedPush({ tags: next });
-                }}
-              />
-              <div className="flex flex-wrap items-center gap-2">
-                <FavoriteFilter
-                  active={derivedFilters.favorite}
-                  onToggle={async () =>
-                    guardedPush({ favorite: !derivedFilters.favorite })
-                  }
-                />
-                <ClearFilters
-                  disabled={
-                    !derivedFilters.favorite && derivedFilters.tags.length === 0
-                  }
-                  onClick={async () => guardedPush({ tags: [], favorite: false })}
-                />
-              </div>
-            </>
-          ) : null}
-        </div>
-        <div className="mt-4">
-          {infinite.isPending && !infinite.data ? (
-            <PostListSkeleton count={10} />
-          ) : infinite.isError && !infinite.data ? (
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                {infinite.error?.message || texts.toast.error.unknownError}
-              </p>
-              <div>
-                <Button type="button" variant="outline" onClick={() => void infinite.refetch()}>
-                  {texts.toast.action.retry}
-                </Button>
-              </div>
-            </div>
-          ) : posts.length === 0 ? (
-            <p className="text-sm text-muted-foreground">{texts.posts.empty}</p>
+      <div className="order-2 md:order-0">
+        <section className="rounded-xl border bg-card p-4">
+          <h2 className="text-sm font-semibold">{texts.posts.editorTitle}</h2>
+          {derivedFilters.view === "trash" ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              {texts.posts.trashDisabled}
+            </p>
           ) : (
-            <div className="space-y-4">
-              <PostList
-                posts={posts}
-                onEdit={allowActions ? handleEdit : () => undefined}
-                onDelete={allowActions ? handleDelete : () => undefined}
-                onToggleFavorite={allowActions ? handleToggleFavorite : undefined}
-                actionsDisabled={!allowActions}
-                showFavorite={derivedFilters.view !== "trash"}
-                pendingFavoriteIds={favoritePendingIds}
-                renderOverride={(post) =>
-                  editingPost &&
-                  editingPost.mode === "memo" &&
-                  editingPost.postId === post.postId ? (
-                    <EditMemoInline
-                      postId={editingPost.postId}
-                      initialText={editingPost.contentText}
-                      tags={editingPost.tags}
-                      favorite={editingPost.favorite}
-                      tagSuggestions={tagCloud}
-                      onUpdated={handlePostUpdated}
-                      onCancel={() => setEditingPost(null)}
-                    />
-                  ) : null
-                }
+            <div className="mt-4">
+              <NewPostEditor
+                mode={derivedFilters.mode}
+                locked={locked}
+                discardToken={discardToken}
+                tagSuggestions={tagCloud}
+                onCreated={handleCreated}
               />
+            </div>
+          )}
+        </section>
+      </div>
 
-              {infinite.isFetchingNextPage ? <PostListSkeleton count={10} /> : null}
+      <div className="order-1 md:order-0">
+        <section className="rounded-xl border bg-card p-4">
+          <h2 className="text-sm font-semibold">{texts.posts.listTitle}</h2>
+          {initialError && infinite.isPending && !infinite.data ? (
+            <p className="mt-2 text-sm text-muted-foreground">{initialError}</p>
+          ) : null}
+          <div className="mt-4 space-y-3">
+            <ModeSwitch
+              mode={derivedFilters.mode}
+              view={derivedFilters.view}
+              hideModeSwitch={derivedFilters.view === "trash"}
+              onChangeMode={(nextMode) => guardedPush({ mode: nextMode })}
+              onChangeView={(nextView) =>
+                guardedPush({ view: nextView === "trash" ? "trash" : undefined })
+              }
+            />
 
-              {infinite.isFetchNextPageError ? (
-                <div className="flex justify-center">
+            {showFilters ? (
+              <>
+                <TagFilter
+                  tags={tagCloud}
+                  activeTagIds={derivedFilters.tags}
+                  onToggle={async (tagId) => {
+                    const next = derivedFilters.tags.includes(tagId)
+                      ? derivedFilters.tags.filter((item) => item !== tagId)
+                      : [...derivedFilters.tags, tagId];
+                    await guardedPush({ tags: next });
+                  }}
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <FavoriteFilter
+                    active={derivedFilters.favorite}
+                    onToggle={async () =>
+                      guardedPush({ favorite: !derivedFilters.favorite })
+                    }
+                  />
+                  <ClearFilters
+                    disabled={
+                      !derivedFilters.favorite && derivedFilters.tags.length === 0
+                    }
+                    onClick={async () => guardedPush({ tags: [], favorite: false })}
+                  />
+                </div>
+              </>
+            ) : null}
+          </div>
+          <div className="mt-4">
+            {infinite.isPending && !infinite.data ? (
+              <PostListSkeleton count={10} />
+            ) : infinite.isError && !infinite.data ? (
+              <div className="space-y-3">
+                <p className="text-sm text-muted-foreground">
+                  {infinite.error?.message || texts.toast.error.unknownError}
+                </p>
+                <div>
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => void infinite.fetchNextPage()}
-                    disabled={infinite.isFetchingNextPage}
+                    onClick={() => void infinite.refetch()}
                   >
                     {texts.toast.action.retry}
                   </Button>
                 </div>
-              ) : null}
+              </div>
+            ) : posts.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{texts.posts.empty}</p>
+            ) : (
+              <div className="space-y-4">
+                <PostList
+                  posts={posts}
+                  onEdit={allowActions ? handleEdit : () => undefined}
+                  onDelete={allowActions ? handleDelete : () => undefined}
+                  onToggleFavorite={allowActions ? handleToggleFavorite : undefined}
+                  actionsDisabled={!allowActions}
+                  showFavorite={derivedFilters.view !== "trash"}
+                  pendingFavoriteIds={favoritePendingIds}
+                  renderOverride={(post) =>
+                    editingPost &&
+                    editingPost.mode === "memo" &&
+                    editingPost.postId === post.postId ? (
+                      <EditMemoInline
+                        postId={editingPost.postId}
+                        initialText={editingPost.contentText}
+                        tags={editingPost.tags}
+                        favorite={editingPost.favorite}
+                        tagSuggestions={tagCloud}
+                        onUpdated={handlePostUpdated}
+                        onCancel={() => setEditingPost(null)}
+                      />
+                    ) : null
+                  }
+                />
 
-              {infinite.hasNextPage ? (
-                <div ref={sentinelRef} className="h-1" aria-hidden="true" />
-              ) : null}
-            </div>
-          )}
-        </div>
-      </section>
+                {infinite.isFetchingNextPage ? <PostListSkeleton count={10} /> : null}
+
+                {infinite.isFetchNextPageError ? (
+                  <div className="flex justify-center">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => void infinite.fetchNextPage()}
+                      disabled={infinite.isFetchingNextPage}
+                    >
+                      {texts.toast.action.retry}
+                    </Button>
+                  </div>
+                ) : null}
+
+                {infinite.hasNextPage ? (
+                  <div ref={sentinelRef} className="h-1" aria-hidden="true" />
+                ) : null}
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
 
       <EditNoteDialog
         open={noteDialogOpen}

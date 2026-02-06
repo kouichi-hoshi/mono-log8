@@ -65,7 +65,11 @@ export default async function Home({ searchParams }: HomePageProps) {
 
   return (
     <AuthModalProvider>
-      <AppShell headerRight={headerRight}>
+      <AppShell
+        headerRight={headerRight}
+        showHeader={!isLoggedIn}
+        showFooter={!isLoggedIn}
+      >
         {isLoggedIn ? (
           <PostsPage
             mode={mode}
