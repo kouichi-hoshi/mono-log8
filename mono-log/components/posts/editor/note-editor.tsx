@@ -30,6 +30,7 @@ export function NoteEditor({
     extensions: [StarterKit],
     content: initial,
     editable: !readOnly,
+    immediatelyRender: false,
     editorProps: {
       attributes: {
         class: editorClassName ??
