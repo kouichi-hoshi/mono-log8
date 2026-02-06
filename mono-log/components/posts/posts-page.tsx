@@ -25,6 +25,7 @@ import {
   useHasUnsavedChanges,
 } from "@/components/posts/unsaved/unsaved-changes-provider";
 import { useGuardedSearchParams } from "@/components/posts/unsaved/use-guarded-search-params";
+import { ModeSwitch } from "@/components/posts/mode-switch";
 import type {
   FindManyPostsResult,
   PostMode,
@@ -282,32 +283,46 @@ function PostsPageInner({
         {initialError && infinite.isPending && !infinite.data ? (
           <p className="mt-2 text-sm text-muted-foreground">{initialError}</p>
         ) : null}
-        {showFilters ? (
-          <div className="mt-4 space-y-3">
-            <TagFilter
-              tags={tagCloud}
-              activeTagIds={derivedFilters.tags}
-              onToggle={async (tagId) => {
-                const next = derivedFilters.tags.includes(tagId)
-                  ? derivedFilters.tags.filter((item) => item !== tagId)
-                  : [...derivedFilters.tags, tagId];
-                await guardedPush({ tags: next });
-              }}
-            />
-            <div className="flex flex-wrap items-center gap-2">
-              <FavoriteFilter
-                active={derivedFilters.favorite}
-                onToggle={async () =>
-                  guardedPush({ favorite: !derivedFilters.favorite })
-                }
+        <div className="mt-4 space-y-3">
+          <ModeSwitch
+            mode={derivedFilters.mode}
+            view={derivedFilters.view}
+            hideModeSwitch={derivedFilters.view === "trash"}
+            onChangeMode={(nextMode) => guardedPush({ mode: nextMode })}
+            onChangeView={(nextView) =>
+              guardedPush({ view: nextView === "trash" ? "trash" : undefined })
+            }
+          />
+
+          {showFilters ? (
+            <>
+              <TagFilter
+                tags={tagCloud}
+                activeTagIds={derivedFilters.tags}
+                onToggle={async (tagId) => {
+                  const next = derivedFilters.tags.includes(tagId)
+                    ? derivedFilters.tags.filter((item) => item !== tagId)
+                    : [...derivedFilters.tags, tagId];
+                  await guardedPush({ tags: next });
+                }}
               />
-              <ClearFilters
-                disabled={!derivedFilters.favorite && derivedFilters.tags.length === 0}
-                onClick={async () => guardedPush({ tags: [], favorite: false })}
-              />
-            </div>
-          </div>
-        ) : null}
+              <div className="flex flex-wrap items-center gap-2">
+                <FavoriteFilter
+                  active={derivedFilters.favorite}
+                  onToggle={async () =>
+                    guardedPush({ favorite: !derivedFilters.favorite })
+                  }
+                />
+                <ClearFilters
+                  disabled={
+                    !derivedFilters.favorite && derivedFilters.tags.length === 0
+                  }
+                  onClick={async () => guardedPush({ tags: [], favorite: false })}
+                />
+              </div>
+            </>
+          ) : null}
+        </div>
         <div className="mt-4">
           {infinite.isPending && !infinite.data ? (
             <PostListSkeleton count={10} />

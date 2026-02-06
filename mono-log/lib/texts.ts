@@ -58,6 +58,7 @@ export const texts = {
     },
   },
   trash: {
+    title: "ごみ箱",
     open: "ごみ箱を見る",
     selectVisible: "表示されている投稿を選択",
     selectedCount: (count: number) => `${count}件選択中`,
