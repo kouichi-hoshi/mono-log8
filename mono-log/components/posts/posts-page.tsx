@@ -260,41 +260,54 @@ function PostsPageInner({
   return (
     <div className="grid gap-6 md:grid-cols-[minmax(0,360px)_1fr]">
       <div className="order-2 md:order-0">
-        <section className="rounded-xl border bg-card p-4">
-          <h2 className="text-sm font-semibold">{texts.posts.editorTitle}</h2>
-          <div className="mt-4 flex flex-col gap-3">
-            <div className="order-1 md:order-2">
-              {showFilters ? (
-                <div className="space-y-3">
-                  <TagFilter
-                    tags={tagCloud}
-                    activeTagIds={derivedFilters.tags}
-                    onToggle={async (tagId) => {
-                      const next = derivedFilters.tags.includes(tagId)
-                        ? derivedFilters.tags.filter((item) => item !== tagId)
-                        : [...derivedFilters.tags, tagId];
-                      await guardedPush({ tags: next });
-                    }}
+        <div className="flex flex-col gap-4">
+          {derivedFilters.view === "trash" ? (
+            <section className="order-0 rounded-xl border bg-card p-4">
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                className="w-full justify-center"
+                onClick={() => guardedPush({ view: "normal" })}
+              >
+                投稿一覧へもどる
+              </Button>
+            </section>
+          ) : null}
+          {showFilters ? (
+            <section className="order-1 rounded-xl border bg-card p-4 md:order-2">
+              <div className="space-y-3">
+                <TagFilter
+                  tags={tagCloud}
+                  activeTagIds={derivedFilters.tags}
+                  onToggle={async (tagId) => {
+                    const next = derivedFilters.tags.includes(tagId)
+                      ? derivedFilters.tags.filter((item) => item !== tagId)
+                      : [...derivedFilters.tags, tagId];
+                    await guardedPush({ tags: next });
+                  }}
+                />
+                <div className="flex flex-wrap items-center gap-2">
+                  <FavoriteFilter
+                    active={derivedFilters.favorite}
+                    onToggle={async () =>
+                      guardedPush({ favorite: !derivedFilters.favorite })
+                    }
                   />
-                  <div className="flex flex-wrap items-center gap-2">
-                    <FavoriteFilter
-                      active={derivedFilters.favorite}
-                      onToggle={async () =>
-                        guardedPush({ favorite: !derivedFilters.favorite })
-                      }
-                    />
-                    <ClearFilters
-                      disabled={
-                        !derivedFilters.favorite && derivedFilters.tags.length === 0
-                      }
-                      onClick={async () => guardedPush({ tags: [], favorite: false })}
-                    />
-                  </div>
+                  <ClearFilters
+                    disabled={
+                      !derivedFilters.favorite && derivedFilters.tags.length === 0
+                    }
+                    onClick={async () => guardedPush({ tags: [], favorite: false })}
+                  />
                 </div>
-              ) : null}
-            </div>
+              </div>
+            </section>
+          ) : null}
 
-            <div className="order-2 md:order-3">
+          <section className="order-2 rounded-xl border bg-card p-4 md:order-3">
+            <h2 className="text-sm font-semibold">{texts.posts.editorTitle}</h2>
+            <div className="mt-4">
               {derivedFilters.view === "trash" ? (
                 <p className="text-sm text-muted-foreground">
                   {texts.posts.trashDisabled}
@@ -309,20 +322,26 @@ function PostsPageInner({
                 />
               )}
             </div>
+          </section>
 
-            <div className="order-3 md:order-1">
-              <ModeSwitch
-                mode={derivedFilters.mode}
-                view={derivedFilters.view}
-                hideModeSwitch={derivedFilters.view === "trash"}
-                onChangeMode={(nextMode) => guardedPush({ mode: nextMode })}
-                onChangeView={(nextView) =>
-                  guardedPush({ view: nextView === "trash" ? "trash" : undefined })
-                }
-              />
-            </div>
-          </div>
-        </section>
+          {derivedFilters.view === "trash" ? null : (
+            <section className="order-3 rounded-xl border bg-card p-4 md:order-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded-full border px-3 py-1 text-xs md:hidden">
+                  ヘッダー
+                </span>
+                <ModeSwitch
+                  mode={derivedFilters.mode}
+                  view={derivedFilters.view}
+                  onChangeMode={(nextMode) => guardedPush({ mode: nextMode })}
+                  onChangeView={(nextView) =>
+                    guardedPush({ view: nextView === "trash" ? "trash" : undefined })
+                  }
+                />
+              </div>
+            </section>
+          )}
+        </div>
       </div>
 
       <div className="order-1 md:order-0">

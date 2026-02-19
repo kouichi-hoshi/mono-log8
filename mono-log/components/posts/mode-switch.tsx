@@ -6,7 +6,6 @@ import { texts } from "@/lib/texts";
 type ModeSwitchProps = {
   mode: "memo" | "note";
   view: "normal" | "trash";
-  hideModeSwitch?: boolean;
   onChangeMode: (mode: "memo" | "note") => void | Promise<void>;
   onChangeView: (view: "normal" | "trash") => void | Promise<void>;
 };
@@ -14,7 +13,6 @@ type ModeSwitchProps = {
 export function ModeSwitch({
   mode,
   view,
-  hideModeSwitch = false,
   onChangeMode,
   onChangeView,
 }: ModeSwitchProps) {
@@ -34,10 +32,18 @@ export function ModeSwitch({
         <Button
           type="button"
           size="sm"
-          variant={view === "normal" ? "secondary" : "outline"}
-          onClick={() => handleChangeView("normal")}
+          variant={mode === "memo" ? "secondary" : "outline"}
+          onClick={() => handleChangeMode("memo")}
         >
-          {texts.posts.listTitle}
+          {texts.post.modeMemo}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant={mode === "note" ? "secondary" : "outline"}
+          onClick={() => handleChangeMode("note")}
+        >
+          {texts.post.modeNote}
         </Button>
         <Button
           type="button"
@@ -48,27 +54,6 @@ export function ModeSwitch({
           {texts.trash.title}
         </Button>
       </div>
-
-      {hideModeSwitch ? null : (
-        <div className="flex items-center gap-2">
-          <Button
-            type="button"
-            size="sm"
-            variant={mode === "memo" ? "secondary" : "outline"}
-            onClick={() => handleChangeMode("memo")}
-          >
-            {texts.post.modeMemo}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={mode === "note" ? "secondary" : "outline"}
-            onClick={() => handleChangeMode("note")}
-          >
-            {texts.post.modeNote}
-          </Button>
-        </div>
-      )}
     </div>
   );
 }
